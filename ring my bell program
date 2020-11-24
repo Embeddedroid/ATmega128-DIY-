@@ -1,0 +1,36 @@
+#include <avr/io.h>
+#define F_CPU	16000000UL
+#define __DELAY_BACKWARD_COMPATIBLE__	//Atmel Studi 7 에서 _delay_ms() 함수의 인수로
+										//상수가 아닌 인수를 사용하는 경우에 선언 필요
+#include <util/delay.h>
+#void buzzer(int hz, int count );
+
+int main(void)
+{
+	int i;
+	DDRB=DDRB|0x10;
+	
+	while(1)
+	{
+		for(i=0;i<20;i++)
+		{
+			buzzer(480,12);
+			buzzer(320,8);
+		}
+		_delay_ms(2000);
+	}
+	return 0;
+}
+
+void buzzer(int hz,int count)	//hz 의 주파수를 갖는 펄스를 count 개수 만큼 생성
+{
+	int i,us;
+	us=(1000UL*1000)/hz/2;	//한개 펄스의 ON 또는 OFF의 us 단위
+	for(i=0;i<count;i++)
+	{
+		PORTB=PORTB|1<<4;
+		_delay_ms(us);
+		PORTB&=PORTB&~(1<<4);
+		_delay_ms(us);
+	}
+}
