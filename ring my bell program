@@ -30,7 +30,7 @@ void buzzer(int hz,int count)	//hz 의 주파수를 갖는 펄스를 count 개�
 	{
 		PORTB=PORTB|1<<4;
 		_delay_ms(us);
-		PORTB&=PORTB&~(1<<4);
+		PORTB&=~(1<<4);
 		_delay_ms(us);
 	}
 }
