@@ -1,0 +1,52 @@
+//삐에조 버저를 이용하여 6옥 '도' 를 지속적으로 생성 ( 단, 타이머/카운터 자원 이용 )
+// 주파수에 해당하는 pulse 생성 Timer/Counter0 이용
+// 6옥 도 의 주파수는 1046.5 
+//-> 1/1046.5 초 를 계산해보면 1개 펄스의 주기는 955.5us
+// 듀티 사이클을 50% 라고 가정하면 ON 시간은 478us OFF 시간도 478us
+
+// ATmega128 은 16Mhz로 작동
+// 1 클록의 주기는 1/16000000=0.0625us
+// pre-scaler 를 32분주로 선택 -> 클록 주기는 0.0625*32=2us
+// 478us 동안 ON 상태를 유지하고, 478us 동안 OFF 상태를 유지해야 함
+// 1개 클록 주기: 2us -> 총 (478/2)=239 개의 클록 시간 동안 지나가면 됨
+// 239개 클록 지나가면 인터럽트 발생시키고
+// 인터럽트 서비스 루틴에서는 버저 신호가 ON 상태이면 OFF상태로, OFF상태이면 ON상태로 바꾸어 펄스 신호를 발생
+// 이 주기로 인터럽트를 발생시키기 위해서는 TCNT0에 '(256-239)=17' 을 써넣고 기다리면 239 클록 후에 TCNT0오버플로우 인터럽트 발생
+// 인터럽트 서비스 루틴 마지막에는 TCNT0 값을 다시 17로 써 넣고 인터럽트 서비스 루틴을 빠져나온다.
+
+#include <avr/io.h>
+#define	F_CPU 1/16000000UL
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+#define ON 1	// buzzer on
+#define OFF 0	// buzzer off
+
+#define DO_DATA	17	// 'DO' sound for TCNT0
+volatile int state=OFF;
+
+ISR(TIMER0_OVF_vect)	//	TIMER/COUNTER 0 overflow interrupt service routine
+{
+	TCNT0=DO_DATA;
+	if(state==OFF)
+	{
+		PORTB|=1<<4;	//	buzzer port ON
+		state=ON;
+	}
+	else
+	{
+		PORTB&=~(1<<4);	//	buzzer port OFF
+		state=OFF;
+	}
+}
+
+int main(void)
+{
+	DDRB|=0x10;			// 버저 연결 포트 (PB4) 출력 설정
+	TCCR0=0x03;			// pre-scaler 32분주
+	TIMSK=0x01;			// timer/counter 의 interrupt 활성화, TOIE0 비트 set
+	sei();				// 전역 인터럽트 활성화
+	TCNT0=DO_DATA;
+	while(1)
+		;
+}
